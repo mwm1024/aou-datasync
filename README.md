@@ -16,5 +16,5 @@ Positional arguments:
 Optional arguments:
 
 - `-h, --help`    Show this help message and exit
-- `-i, --interactive`   Run interactive resolver on output_issues.csv
+- `-i, --interactive`   Run interactive resolver on missing lead/contact, which shows the Primary Consent Date for these participants as well.
 - `-d DAYS, --days DAYS`    Only run resolver on records of which the Primary Consent Date is this DAYS ago.
