@@ -7,6 +7,7 @@ import csv
 import argparse
 import sys
 import os.path
+from operator import itemgetter
 from datetime import datetime, timedelta, time
 
 from progress.bar import Bar
@@ -56,12 +57,17 @@ def merge_participants(participants, leads, contacts, resolve=False, days=-1):
             except Exception as e:
                 exit(f'Error: Failed to interpret "{pcd}" for {pmid}.')
             if since_day < pcd or days < 0:
-                # DEBUG:
-                print(pcd)
-                if resolve and not SKIPALL:
-                    participant = resolver(participant, leads, 'lead')
-                if resolve and not SKIPALL:
-                    participant = resolver(participant, contacts, 'contact')
+                print(f'\n👉{pmid} ({pcd}) does not have a matching lead or contact...')
+                if resolve:
+                    if SKIPALL:
+                        print(f'Skipped resolving lead.')
+                    else:
+                        participant = resolver(participant, leads, 'lead')
+                if resolve:
+                    if SKIPALL:
+                        print(f'Skipped resolving contact.')
+                    else:
+                        participant = resolver(participant, contacts, 'contact')
         bar.next()
     bar.finish()
     return participants
@@ -104,7 +110,7 @@ def upload_gen(participants):
 
 
 def resolver(participant, sf_data, category):
-    print(f'\nResolving {category}...')
+    print(f'Resolving {category}...')
     if category not in ('contact', 'lead'):
         exit('Unsupported category for resolver.')
     pmid = participant['PMID']
@@ -137,7 +143,7 @@ def resolver(participant, sf_data, category):
         print(f'HealthPro\t',
               f'{pmid}\t\t',
               '\t'.join(participant_info))
-        candidates.sort(reverse=True)
+        candidates.sort(key=itemgetter(0), reverse=True)
         for i in range(0,3):
             cand = candidates[i]
             # TODO: tab display
@@ -152,7 +158,7 @@ def resolver(participant, sf_data, category):
                 participant['Lead ID'] = participant_record_id
             else:
                 participant['Contact ID'] = participant_record_id
-            print(f'{pmid} {category.capitalize()} ID -> {participant_record_id}')
+            print(f'✅{pmid} {category.capitalize()} ID -> {participant_record_id}')
         elif selection == 'skipall':
             # TODO: Don't like this, replace global var later.
             global SKIPALL
@@ -181,7 +187,7 @@ def main():
     parser.add_argument('-i',
                         '--interactive',
                         action='store_true',
-                        help='Run interactive resolver on output_issues.csv')
+                        help='Run interactive resolver on missing lead/contact, which shows the Primary Consent Date for these participants as well.')
     parser.add_argument('-d',
                         '--days',
                         help='Only run resolver on records of which the Primary Consent Date is this DAYS ago.')
@@ -189,17 +195,23 @@ def main():
     participants = read_csv(args.workq)
     contacts = read_csv(args.contacts)
     leads = read_csv(args.leads)
-    try:
-        since_day = datetime.now() - timedelta(days=int(args.days))
-        since_day = datetime.combine(since_day.date(), time())
-        print(f'Primary Consent Date cutoff for resolver: {since_day.date()}')
-    except Exception as e:
-        exit(f'Failed to interpret -d value, user provides "{args.days}".')
-    participants_merged = merge_participants(participants,
-                                             leads,
-                                             contacts,
-                                             resolve=args.interactive,
-                                             days=int(args.days))
+    if not args.days:
+        participants_merged = merge_participants(participants,
+                                                 leads,
+                                                 contacts,
+                                                 resolve=args.interactive)
+    else:
+        try:
+            since_day = datetime.now() - timedelta(days=int(args.days))
+            since_day = datetime.combine(since_day.date(), time())
+            print(f'Primary Consent Date cutoff for resolver: {since_day.date()}')
+        except Exception as e:
+            exit(f'Failed to interpret -d value, user provides "{args.days}".')
+        participants_merged = merge_participants(participants,
+                                                 leads,
+                                                 contacts,
+                                                 resolve=args.interactive,
+                                                 days=int(args.days))
     upload_gen(participants_merged)
 
 
