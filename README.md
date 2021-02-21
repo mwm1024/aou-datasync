@@ -18,3 +18,7 @@ Optional arguments:
 - `-h, --help`    Show this help message and exit
 - `-i, --interactive`   Run interactive resolver on missing lead/contact, which shows the Primary Consent Date for these participants as well.
 - `-d DAYS, --days DAYS`    Only run resolver on records of which the Primary Consent Date is this DAYS ago.
+
+**Note**
+
+Trim off the leading and trailing spaces and/or descriptive text in the CSV files to ensure normal functioning of this script. 
