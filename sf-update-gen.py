@@ -133,7 +133,10 @@ def resolver(participant, sf_data, category):
             f'{record["Phone"]}',
             f'{record["Email"]}',
         ]
-        score = fuzz.partial_token_sort_ratio(participant_info, record_info)
+        score = fuzz.partial_token_sort_ratio(
+            [p_info.lower() for p_info in participant_info],
+            [r_info.lower() for r_info in record_info]
+        )
         candidates.append([score, record_id, record_info])
         if record['PMID'] == pmid:
             participant_record_id = record_id
